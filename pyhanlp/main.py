@@ -35,6 +35,8 @@ def main():
     segment_parser.set_defaults(tag=True)
     segment_parser.add_argument('-a', '--algorithm', type=str, default='viterbi',
                                 help='algorithm of segmentation e.g. perceptron')
+    newwords_parser = task_parser.add_parser(name='newwords', help='recognize new words')
+    newwords_parser.add_argument('corpus', help='corpus file path')
     parse_parser = task_parser.add_parser(name='parse', help='dependency parsing')
     server_parser = task_parser.add_parser(name='serve', help='start http server',
                                            description='A http server for HanLP')
@@ -47,6 +49,7 @@ def main():
         # p.add_argument("--action", dest="action", default='predict',
         #                help='Which action (train, test, predict)?')
 
+    add_args(newwords_parser)
     add_args(segment_parser)
     add_args(parse_parser)
 
@@ -92,6 +95,17 @@ def main():
         for line in sys.stdin:
             line = line.strip()
             print(' '.join(term.toString() for term in segmenter.seg(any2utf8(line))))
+    elif args.task == 'newwords':
+        if not os.path.exists(args.corpus) or not os.path.isfile(args.corpus):
+            die('corpus不存在或不是文件')
+        with open(args.corpus, 'r') as corpus_file:
+            new_words = [
+                (word_info.text, word_info.frequency)
+                for word_info in list(HanLP.extractWords(
+                    any2utf8(corpus_file.read()), 10000, True))
+            ]
+            for word in new_words:
+                print('{} {}'.format(word[0], word[1]))
     elif args.task == 'parse':
         for line in sys.stdin:
             line = line.strip()
